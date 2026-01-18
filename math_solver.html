@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Math Master v4</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap');
+
+        * { box-sizing: border-box; transition: all 0.3s ease; }
+
+        body {
+            margin: 0;
+            background-color: #050505;
+            background-image: radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.05) 0%, transparent 50%);
+            font-family: 'Poppins', sans-serif;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .grid-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 95%; max-width: 550px; /* Slightly wider for tabs */
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center; margin: 0 0 20px 0;
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #00eaff, #ff00de);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 234, 255, 0.3);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex; justify-content: space-between; gap: 5px;
+            margin-bottom: 20px; background: rgba(0,0,0,0.4);
+            border-radius: 12px; padding: 5px;
+            flex-wrap: wrap; /* Wrap on very small screens */
+        }
+        .tab {
+            flex: 1; text-align: center; padding: 10px 5px;
+            cursor: pointer; border-radius: 8px; font-size: 1.1rem; color: #666;
+            font-family: 'Orbitron', sans-serif; min-width: 40px;
+        }
+        .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tab.active {
+            background: linear-gradient(135deg, #00eaff, #0077ff);
+            color: #000; font-weight: bold; box-shadow: 0 0 15px #00eaff;
+        }
+
+        /* Inputs */
+        .input-group { display: none; animation: fadeIn 0.4s; }
+        .input-group.active { display: block; }
+
+        label { display: block; margin-bottom: 8px; color: #00eaff; font-size: 0.9rem; font-family: 'Orbitron', sans-serif; }
+        
+        input {
+            width: 100%; padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333; border-radius: 8px;
+            color: #fff; font-size: 1rem; outline: none;
+            font-family: 'Orbitron', sans-serif; text-align: center;
+        }
+        input:focus { border-color: #ff00de; box-shadow: 0 0 10px rgba(255, 0, 222, 0.3); }
+
+        .row-inputs { display: flex; gap: 10px; }
+        .row-inputs input { width: 100%; }
+
+        button.calc-btn {
+            width: 100%; padding: 15px; margin-top: 20px;
+            border: none; border-radius: 8px;
+            background: linear-gradient(90deg, #ff00de, #ff5e00);
+            color: white; font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 2px; box-shadow: 0 0 20px rgba(255, 0, 222, 0.4);
+        }
+        button.calc-btn:hover { transform: scale(1.02); box-shadow: 0 0 40px rgba(255, 0, 222, 0.6); }
+
+        /* Results */
+        .results {
+            margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+            opacity: 0; transform: translateY(10px);
+        }
+        .results.show { opacity: 1; transform: translateY(0); }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px; border-radius: 12px; text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .result-title { font-size: 0.8rem; color: #aaa; margin-bottom: 5px; text-transform: uppercase; }
+        .result-value { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; color: #00ffcc; text-shadow: 0 0 10px #00ffcc; word-break: break-all;}
+
+        #visualCanvas {
+            width: 100%; height: 120px; margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="grid-bg"></div>
+
+    <div class="container">
+        <h1>NEON SOLVER</h1>
+
+        <canvas id="visualCanvas"></canvas>
+
+        <div class="tabs">
+            <div class="tab active" onclick="setMode('square')">⬜</div>
+            <div class="tab" onclick="setMode('rect')">▭</div>
+            <div class="tab" onclick="setMode('circle')">⭕</div>
+            <div class="tab" onclick="setMode('triangle')">🔺</div>
+            <div class="tab" onclick="setMode('root')">√</div>
+            <div class="tab" onclick="setMode('power')">xⁿ</div>
+            <div class="tab" onclick="setMode('quad')">x²=0</div>
+        </div>
+
+        <div id="input-square" class="input-group active">
+            <label>SIDE LENGTH (a)</label>
+            <input type="number" id="sq-side" placeholder="Side" oninput="draw()">
+        </div>
+
+        <div id="input-rect" class="input-group">
+            <label>DIMENSIONS</label>
+            <div class="row-inputs">
+                <input type="number" id="rect-l" placeholder="Length" oninput="draw()">
+                <input type="number" id="rect-w" placeholder="Width" oninput="draw()">
+            </div>
+        </div>
+
+        <div id="input-circle" class="input-group">
+            <label>RADIUS (r)</label>
+            <input type="number" id="circ-r" placeholder="Radius" oninput="draw()">
+        </div>
+
+        <div id="input-triangle" class="input-group">
+            <label>BASE & HEIGHT (Area)</label>
+            <div class="row-inputs" style="margin-bottom:10px;">
+                <input type="number" id="tri-b" placeholder="Base" oninput="draw()">
+                <input type="number" id="tri-h" placeholder="Height" oninput="draw()">
+            </div>
+            <label>3 SIDES (Perimeter)</label>
+            <div class="row-inputs">
+                <input type="number" id="tri-s1" placeholder="a">
+                <input type="number" id="tri-s2" placeholder="b">
+                <input type="number" id="tri-s3" placeholder="c">
+            </div>
+        </div>
+
+        <div id="input-root" class="input-group">
+            <label>ENTER NUMBER (For Roots)</label>
+            <input type="number" id="root-val" placeholder="Number" oninput="draw()">
+        </div>
+
+        <div id="input-power" class="input-group">
+            <label>ENTER NUMBER (For Square/Cube)</label>
+            <input type="number" id="power-val" placeholder="Number" oninput="draw()">
+        </div>
+
+        <div id="input-quad" class="input-group">
+            <label>EQUATION: ax² + bx + c = 0</label>
+            <div class="row-inputs">
+                <input type="number" id="quad-a" placeholder="a">
+                <input type="number" id="quad-b" placeholder="b">
+                <input type="number" id="quad-c" placeholder="c">
+            </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">SOLVE</button>
+
+        <div class="results" id="resultsBox">
+            <div class="result-card">
+                <div class="result-title" id="lbl-1">AREA</div>
+                <div class="result-value" id="res-1">0</div>
+            </div>
+            <div class="result-card">
+                <div class="result-title" id="lbl-2">PERIMETER</div>
+                <div class="result-value" id="res-2">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mode = 'square';
+        const canvas = document.getElementById('visualCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function setMode(newMode) {
+            mode = newMode;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.input-group').forEach(g => g.classList.remove('active'));
+            document.getElementById(`input-${mode}`).classList.add('active');
+
+            document.getElementById('resultsBox').classList.remove('show');
+            draw();
+        }
+
+        function draw() {
+            const w = canvas.getBoundingClientRect().width;
+            const h = canvas.getBoundingClientRect().height;
+            const cx = w/2, cy = h/2;
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = '#00eaff';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00eaff';
+            ctx.fillStyle = 'rgba(0, 234, 255, 0.1)';
+
+            ctx.beginPath();
+            
+            if (mode === 'square') {
+                ctx.rect(cx-30, cy-30, 60, 60);
+                ctx.fill(); ctx.stroke();
+            } else if (mode === 'rect') {
+                ctx.rect(cx-50, cy-30, 100, 60);
+                ctx.fill(); ctx.stroke();
+            } else if (mode === 'circle') {
+                ctx.arc(cx, cy, 35, 0, Math.PI*2);
+                ctx.fill(); ctx.stroke();
+            } else if (mode === 'triangle') {
+                ctx.moveTo(cx, cy-40); ctx.lineTo(cx-40, cy+30); ctx.lineTo(cx+40, cy+30); ctx.closePath();
+                ctx.fill(); ctx.stroke();
+            } else if (mode === 'root') {
+                ctx.font = '40px Orbitron'; ctx.fillStyle = '#00eaff'; ctx.textAlign = 'center'; ctx.textBaseline='middle';
+                ctx.fillText('√x', cx, cy); ctx.shadowBlur = 0; return;
+            } else if (mode === 'power') {
+                ctx.font = '40px Orbitron'; ctx.fillStyle = '#ff00de'; ctx.textAlign = 'center'; ctx.textBaseline='middle';
+                ctx.fillText('x³', cx, cy); ctx.shadowBlur = 0; return;
+            } else if (mode === 'quad') {
+                ctx.moveTo(cx-50, cy-40);
+                ctx.quadraticCurveTo(cx, cy+80, cx+50, cy-40);
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function calculate() {
+            let v1=0, v2=0;
+            let l1="AREA", l2="PERIMETER";
+            let valid = false;
+
+            const fmt = n => Number.isInteger(n) ? n : parseFloat(n.toFixed(3));
+
+            if (mode === 'square') {
+                const s = Number(document.getElementById('sq-side').value);
+                if(s) { v1=s*s; v2=4*s; valid=true; }
+            }
+            else if (mode === 'rect') {
+                const l = Number(document.getElementById('rect-l').value);
+                const w = Number(document.getElementById('rect-w').value);
+                if(l && w) { v1=l*w; v2=2*(l+w); valid=true; }
+            }
+            else if (mode === 'circle') {
+                const r = Number(document.getElementById('circ-r').value);
+                if(r) { v1=Math.PI*r*r; v2=2*Math.PI*r; valid=true; }
+            }
+            else if (mode === 'triangle') {
+                const b = Number(document.getElementById('tri-b').value);
+                const h = Number(document.getElementById('tri-h').value);
+                const s1 = Number(document.getElementById('tri-s1').value);
+                const s2 = Number(document.getElementById('tri-s2').value);
+                const s3 = Number(document.getElementById('tri-s3').value);
+                
+                if(b && h) v1 = 0.5*b*h;
+                if(s1 && s2 && s3) v2 = s1+s2+s3;
+                if(v1 || v2) valid=true;
+            }
+            else if (mode === 'root') {
+                const x = Number(document.getElementById('root-val').value);
+                if(x >= 0) {
+                    l1="SQUARE ROOT"; l2="CUBE ROOT";
+                    v1 = Math.sqrt(x); v2 = Math.cbrt(x); valid=true;
+                } else { alert("Negative number for Square Root!"); }
+            }
+            else if (mode === 'power') {
+                const x = Number(document.getElementById('power-val').value);
+                // Allow 0 and negative numbers for powers
+                l1 = "SQUARE (x²)";
+                l2 = "CUBE (x³)";
+                v1 = x * x;
+                v2 = x * x * x;
+                valid = true;
+            }
+            else if (mode === 'quad') {
+                const a = Number(document.getElementById('quad-a').value);
+                const b = Number(document.getElementById('quad-b').value);
+                const c = Number(document.getElementById('quad-c').value);
+
+                if (a === 0) {
+                    alert("'a' cannot be 0!");
+                } else {
+                    const d = (b*b) - (4*a*c);
+                    l1 = "ROOT 1"; l2 = "ROOT 2";
+                    if (d > 0) {
+                        v1 = (-b + Math.sqrt(d)) / (2*a);
+                        v2 = (-b - Math.sqrt(d)) / (2*a);
+                    } else if (d === 0) {
+                        v1 = v2 = -b / (2*a);
+                    } else {
+                        v1 = "Imaginary"; v2 = "Imaginary";
+                    }
+                    valid = true;
+                }
+            }
+
+            if(valid) {
+                document.getElementById('lbl-1').innerText = l1;
+                document.getElementById('res-1').innerText = typeof v1 === 'string' ? v1 : fmt(v1);
+                
+                document.getElementById('lbl-2').innerText = l2;
+                document.getElementById('res-2').innerText = typeof v2 === 'string' ? v2 : fmt(v2);
+                
+                document.getElementById('resultsBox').classList.add('show');
+            } else {
+                alert("Please check your inputs!");
+            }
+        }
+
+        draw();
+    </script>
+</body>
+</html>
